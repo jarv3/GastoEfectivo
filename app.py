@@ -326,14 +326,21 @@ def app_main():
         start = bmonth
         end = (bmonth + relativedelta(months=1)) - relativedelta(days=1)
         expenses = fetch_expenses(start, end)
-
         total_spent = sum(float(x["amount"]) for x in expenses) if expenses else 0.0
         remaining = max(budget_amount - total_spent, 0.0)
 
-        c1, c2, c3 = st.columns(3)
+        # Gastos del mes anterior
+        prev_month_start = bmonth - relativedelta(months=1)
+        prev_month_end = bmonth - relativedelta(days=1)
+        prev_expenses = fetch_expenses(prev_month_start, prev_month_end)
+        prev_total_spent = sum(float(x["amount"]) for x in prev_expenses) if prev_expenses else 0.0
+
+        # Métricas
+        c1, c2, c3, c4 = st.columns(4)
         c1.metric("Presupuesto del mes", f"${budget_amount:,.2f}")
         c2.metric("Gastado", f"${total_spent:,.2f}")
         c3.metric("Disponible", f"${remaining:,.2f}")
+        c4.metric("Gastado mes anterior", f"${prev_total_spent:,.2f}")
 
         st.caption("Tip: configura el presupuesto en la sección 'Presupuesto (mensual)'.")
 
