@@ -50,7 +50,7 @@ def current_user_email() -> str:
 # -----------------------------
 def auth_block():
     st.title("💳 Gasto Efectivo")
-    st.caption("Inicia sesión para gestionar tus presupuestos, gastos y categorías.")
+    st.caption("No necesitas ganar más dinero para mejora tu vida financiera; necesitas conocer tus gastos.")
 
     supabase = get_supabase()
 
