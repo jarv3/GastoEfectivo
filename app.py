@@ -52,51 +52,68 @@ def current_user_email() -> str:
 def auth_block():
     st.title("💳 Gasto Efectivo")
 
-    # Enlaces principales
+    # Enlaces
     VIDEO_URL = "https://www.youtube.com/watch?v=cdtMJSxGNZo"
     PAGO_URL = "https://ppls.me/8sI5sriWVSFgKZkOkQIDFA"
 
-    # Mensaje principal + llamadas a la acción separadas (video y pago)
-    st.markdown(
-        f"""
-    **No necesitas ganar más dinero para mejorar tu vida financiera; necesitas conocer tus gastos.**
+    # ---- Layout en dos columnas
+    col_left, col_right = st.columns([3, 2])  # 60% | 40%
 
-    🎬▶️ **Mira primero el video** y aprende a usar **Gasto Efectivo** paso a paso. Ponla a prueba durante **15 días** y evalúa cómo mejora tu claridad sobre los gastos. Si después de ese tiempo te resulta útil, adquiere la versión completa por **$20 (pago único)**.
+    with col_left:
+        # Texto persuasivo + duración de prueba + precio
+        st.markdown(
+            """
+**No necesitas ganar más dinero para mejorar tu vida financiera; necesitas conocer tus gastos.**
 
-    - **Ver el video de uso:** {VIDEO_URL}  
-    - **Lo quiero:** {PAGO_URL}
-        """
-    )
+**Mira primero el video** y aprende a usar **Gasto Efectivo** paso a paso.
+Ponla a prueba durante **15 días** y evalúa cómo mejora tu claridad sobre los gastos.
+Si después de ese tiempo te resulta útil, adquiere la versión completa por **$20 (pago único)**.
+"""
+        )
 
-    supabase = get_supabase()
+        # --- Botones de acción (recomendado en versiones recientes de Streamlit)
+        try:
+            c1, c2 = st.columns(2)
+            with c1:
+                st.link_button("🎥 Ver el video", VIDEO_URL, type="secondary")
+            with c2:
+                st.link_button("💳 Lo quiero", PAGO_URL, type="primary")
+        except Exception:
+            # --- Alternativa si tu versión no soporta st.link_button
+            st.markdown(
+                f"""
+- 🎥 **Ver el video de uso:** {VIDEO_URL}
+- 💳 **Lo quiero:** {PAGO_URL}
+"""
+            )
 
-    tab_login, tab_signup = st.tabs(["🔐 Iniciar sesión", "🆕 Crear cuenta"])
+    with col_right:
+        # ---- Tabs de autenticación
+        supabase = get_supabase()
+        tab_login, tab_signup = st.tabs(["🔐 Iniciar sesión", "🆕 Crear cuenta"])
 
-    with tab_login:
-        email = st.text_input("Correo", key="login_email")
-        password = st.text_input("Contraseña", type="password", key="login_pass")
-        if st.button("Entrar", type="primary"):
-            try:
-                # Supabase: sign_in_with_password({email, password})
-                resp = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                set_auth(resp)
-                st.success("✅ Sesión iniciada.")
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ No se pudo iniciar sesión: {e}")
+        with tab_login:
+            email = st.text_input("Correo", key="login_email")
+            password = st.text_input("Contraseña", type="password", key="login_pass")
+            if st.button("Entrar", type="primary"):
+                try:
+                    resp = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                    set_auth(resp)
+                    st.success("✅ Sesión iniciada.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ No se pudo iniciar sesión: {e}")
 
-    with tab_signup:
-        email2 = st.text_input("Correo", key="signup_email")
-        password2 = st.text_input("Contraseña", type="password", key="signup_pass")
-        if st.button("Crear cuenta", type="primary"):
-            try:
-                # Supabase: sign_up({email, password})
-                resp = supabase.auth.sign_up({"email": email2, "password": password2})
-                # Si tienes confirmación de email activada, session puede venir null
-                set_auth(resp)
-                st.success("✅ Registro creado. Revisa tu correo si necesitas confirmar la cuenta.")
-            except Exception as e:
-                st.error(f"❌ No se pudo crear la cuenta: {e}")
+        with tab_signup:
+            email2 = st.text_input("Correo", key="signup_email")
+            password2 = st.text_input("Contraseña", type="password", key="signup_pass")
+            if st.button("Crear cuenta", type="primary"):
+                try:
+                    resp = supabase.auth.sign_up({"email": email2, "password": password2})
+                    set_auth(resp)
+                    st.success("✅ Registro creado. Revisa tu correo si necesitas confirmar la cuenta.")
+                except Exception as e:
+                    st.error(f"❌ No se pudo crear la cuenta: {e}")
 
 # -----------------------------
 # Data access helpers (CRUD)
