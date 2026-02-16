@@ -50,17 +50,20 @@ def current_user_email() -> str:
 # -----------------------------
 def auth_block():
     st.title("💳 Gasto Efectivo")
-    # Enlace a Gumroad (tu URL real)
-    GUMROAD_URL = "https://julioramirez2.gumroad.com/l/GE"
+    # Enlaces principales
+    VIDEO_URL = "https://www.youtube.com/watch?v=cdtMJSxGNZo"
+    PAGO_URL = "https://ppls.me/8sI5sriWVSFgKZkOkQIDFA"
+
     # Mensaje principal + llamada a la acción con precio
     st.markdown(
         """
     **No necesitas ganar más dinero para mejorar tu vida financiera; necesitas conocer tus gastos.**
     
     👉 Primero, mira el video y aprende cómo utilizar **Gasto Efectivo** con instrucciones detalladas.
-    Ponla a prueba durante **15 días**; si tras ese periodo te resulta útil (te aseguro que lo será), podrás comprar la aplicación por un pago único de **$20**. 🎬 Video + acceso aquí:
-    **{url}**
-    """.format(url=GUMROAD_URL)
+    Ponla a prueba durante **15 días**; si tras ese periodo te resulta útil (te aseguro que lo será), podrás comprar la aplicación por un pago único de **$20**. 
+    **Ver el video de uso:** {VIDEO_URL}  
+    **Comprar la app por $20:** {PAGO_URL}
+        """
     )
 
     supabase = get_supabase()
