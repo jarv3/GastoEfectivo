@@ -64,7 +64,7 @@ def auth_block():
     🎬▶️ **Mira primero el video** y aprende a usar **Gasto Efectivo** paso a paso. Ponla a prueba durante **15 días** y evalúa cómo mejora tu claridad sobre los gastos. Si después de ese tiempo te resulta útil, adquiere la versión completa por **$20 (pago único)**.
 
     - **Ver el video de uso:** {VIDEO_URL}  
-    - **Es lo que deseo:** {PAGO_URL}
+    - **Lo quiero:** {PAGO_URL}
         """
     )
 
