@@ -66,7 +66,7 @@ def auth_block():
     Si después de ese tiempo te resulta útil, adquiere la versión completa por **$20 (pago único)**.
 
     - **Ver el video de uso:** {VIDEO_URL}  
-    - **Comprar la app por $20:** {PAGO_URL}
+    - **Es lo que deseo:** {PAGO_URL}
         """
     )
 
