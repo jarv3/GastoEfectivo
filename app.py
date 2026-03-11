@@ -19,23 +19,13 @@ st.set_page_config(
     }
 )
 
-# --- CABECERA COMPACTA (no la ocultamos totalmente) ---
-compact_header_css = """
+# --- OCULTAR MENÚ, HEADER Y FOOTER ---
+hide_streamlit_style = """
 <style>
-/* Seletores más estables en versiones recientes */
-div[data-testid="stHeader"] {
-    height: 8px;            /* antes ~60px */
-    min-height: 8px;
-    background: transparent;
-    box-shadow: none !important;
-}
-/* Evita que deje un espacio grande */
-div[data-testid="stToolbar"] {
-    display: none;          /* oculta la toolbar, no el header entero */
-}
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
 </style>
 """
-st.markdown(compact_header_css, unsafe_allow_html=True)
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 def month_start(d: date) -> date:
