@@ -8,7 +8,26 @@ from dateutil.relativedelta import relativedelta
 # -----------------------------
 # Config
 # -----------------------------
-st.set_page_config(page_title="Gasto Efectivo", page_icon="🔥", layout="wide")
+st.set_page_config(
+    page_title="Gasto Efectivo",
+    page_icon="🔥",
+    layout="wide",
+    menu_items={
+        "Get Help": None,
+        "Report a bug": None,
+        "About": None
+    }
+)
+
+# --- OCULTAR MENÚ, HEADER Y FOOTER ---
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+footer {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 def month_start(d: date) -> date:
     return date(d.year, d.month, 1)
