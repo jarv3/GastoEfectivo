@@ -26,25 +26,6 @@ hide_streamlit_style = """
 footer {visibility: hidden;}
 </style>
 """
-
-# --- CABECERA COMPACTA (no la ocultamos totalmente) ---
-compact_header_css = """
-<style>
-/* Seletores más estables en versiones recientes */
-div[data-testid="stHeader"] {
-    height: 8px;            /* antes ~60px */
-    min-height: 8px;
-    background: transparent;
-    box-shadow: none !important;
-}
-/* Evita que deje un espacio grande */
-div[data-testid="stToolbar"] {
-    display: none;          /* oculta la toolbar, no el header entero */
-}
-</style>
-"""
-st.markdown(compact_header_css, unsafe_allow_html=True)
-
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 def month_start(d: date) -> date:
