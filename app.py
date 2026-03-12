@@ -4,33 +4,132 @@ import plotly.express as px
 from supabase import create_client, Client
 from datetime import date
 from dateutil.relativedelta import relativedelta
+from typing import Optional
 
 # -----------------------------
 # Config
 # -----------------------------
+import streamlit as st
+
 st.set_page_config(
     page_title="Gasto Efectivo",
     page_icon="🔥",
     layout="wide",
-    menu_items={
-        "Get Help": None,
-        "Report a bug": None,
-        "About": None
-    }
+    menu_items={'Get Help': None, 'Report a bug': None, 'About': None}
 )
 
-# --- OCULTAR MENÚ, HEADER Y FOOTER ---
-hide_streamlit_style = """
+st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
+header {visibility: hidden;}
 footer {visibility: hidden;}
 </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
+# --- Estilos Mobile First para el menú superior ---
+st.markdown("""
+<style>
+/* Contenedor "sticky" para el menú (pegado arriba al hacer scroll) */
+#app-top-nav {
+  position: sticky;
+  top: 0;                /* se pega al top del viewport */
+  z-index: 999;          /* por encima del contenido */
+  padding: 0.5rem 0 0.25rem 0;
+  background: transparent; /* se funde con el tema */
+  backdrop-filter: blur(2px);
+}
+
+/* Botones tipo "card" con área táctil cómoda */
+#app-top-nav button[kind="secondary"],
+#app-top-nav button[kind="primary"],
+#app-top-nav button {
+  padding: 12px 14px !important;         /* mayor área tocable */
+  border-radius: 12px !important;        /* pill suave */
+  border: 1px solid var(--secondary-background-color, #3a3a3a) !important;
+  font-weight: 600;
+}
+
+/* Hover sutil */
+#app-top-nav button:hover { filter: brightness(1.06); }
+
+/* Ajustes para pantallas pequeñas */
+@media (max-width: 420px) {
+  #app-top-nav button[kind="secondary"],
+  #app-top-nav button[kind="primary"],
+  #app-top-nav button {
+    padding: 10px 10px !important;
+    font-size: 0.90rem;                   /* un poco más compacto */
+  }
+  /* Un pequeño espacio inferior del bloque del menú */
+  #app-top-nav { padding-bottom: 0.35rem; }
+}
+
+/* Espaciado vertical mínimo entre filas de columnas */
+#app-top-nav [data-testid="column"] {
+  margin-bottom: 0.4rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# -----------------------------
+# Navegación (sin sidebar)
+# -----------------------------
+PAGES = ["Dashboard", "Gastos", "Categorías", "Presupuesto", "Reportes"]
+
+
+# Íconos para cada sección (puedes cambiarlos por los que prefieras)
+PAGE_ICONS = {
+    "Dashboard": "📌",
+    "Gastos": "🧾",
+    "Categorías": "🏷️",
+    "Presupuesto": "📅",
+    "Reportes": "📊",
+}
+
+def goto(page_name: str):
+    """Cambia de sección y hace rerun para aplicar el cambio."""
+    st.session_state["page"] = page_name
+    #st.rerun()
+
+# -----------------------------
+# Utilidades
+# -----------------------------
 def month_start(d: date) -> date:
     return date(d.year, d.month, 1)
 
+def render_entries_grid(pages, cols_per_row: int = 5, center_last_row: bool = False):
+    current = st.session_state.get("page", pages[0] if pages else "")
+    n = len(pages)
+
+    for i in range(0, n, cols_per_row):
+        row_pages = pages[i : i + cols_per_row]
+
+        if center_last_row and len(row_pages) < cols_per_row:
+            pad_left = (cols_per_row - len(row_pages)) // 2
+            pad_right = cols_per_row - len(row_pages) - pad_left
+            cols = st.columns(pad_left + len(row_pages) + pad_right)
+            slots = cols[pad_left : pad_left + len(row_pages)]
+        else:
+            slots = st.columns(len(row_pages))
+
+        for c, name in zip(slots, row_pages):
+            with c:
+                icon = PAGE_ICONS.get(name, "•")
+                label = f"{icon} {name}"
+                # Si es la página actual, pinta como 'primary'
+                btype = "primary" if name == current else "secondary"
+                st.button(
+                    label,
+                    key=f"nav_{name}",
+                    type=btype,
+                    use_container_width=True,
+                    on_click=goto,
+                    args=(name,),
+                )
+
+# -----------------------------
+# Supabase helpers
+# -----------------------------
 def get_supabase() -> Client:
     """
     Crea un cliente Supabase por sesión de usuario de Streamlit (no global cache),
@@ -66,7 +165,6 @@ def current_user_email() -> str:
 # -----------------------------
 # Auth UI
 # -----------------------------
-
 def auth_block():
     st.title("💳 Gasto Efectivo")
 
@@ -81,15 +179,13 @@ def auth_block():
         # Texto persuasivo + duración de prueba + precio
         st.markdown(
             """
-**No necesitas ganar más dinero para mejorar tu vida financiera; necesitas conocer tus gastos.**
-
-**Mira primero el video** y aprende a usar **Gasto Efectivo** paso a paso.
-Ponla a prueba durante **15 días** y evalúa cómo mejora tu claridad sobre los gastos.
-Si después de ese tiempo te resulta útil, adquiere la versión completa por **$20 (pago único)**.
-"""
+            **No necesitas ganar más dinero para mejorar tu vida financiera; necesitas conocer tus gastos.**
+            **Mira primero el video** y aprende a usar **Gasto Efectivo** paso a paso.
+            Ponla a prueba durante **15 días** y evalúa cómo mejora tu claridad sobre los gastos.
+            Si después de ese tiempo te resulta útil, adquiere la versión completa por **$20 (pago único)**.
+            """
         )
-
-        # --- Botones de acción (recomendado en versiones recientes de Streamlit)
+        # --- Botones de acción
         try:
             c1, c2 = st.columns(2)
             with c1:
@@ -97,12 +193,11 @@ Si después de ese tiempo te resulta útil, adquiere la versión completa por **
             with c2:
                 st.link_button("💳 Lo quiero", PAGO_URL, type="primary")
         except Exception:
-            # --- Alternativa si tu versión no soporta st.link_button
             st.markdown(
                 f"""
-- 🎥 **Ver el video de uso:** {VIDEO_URL}
-- 💳 **Lo quiero:** {PAGO_URL}
-"""
+                - 🎥 **Ver el video de uso:** {VIDEO_URL}
+                - 💳 **Lo quiero:** {PAGO_URL}
+                """
             )
 
     with col_right:
@@ -169,11 +264,9 @@ def fetch_budget_month(budget_month: date):
             .eq("budget_month", str(budget_month))
             .execute()
         )
-        # res.data normalmente es una lista (0..n filas)
         data = res.data or []
         return data[0] if len(data) > 0 else None
     except Exception as e:
-        # Log útil para depurar sin romper la app
         st.error(f"Error consultando presupuesto: {e}")
         return None
 
@@ -181,24 +274,26 @@ def delete_budget(budget_id: str):
     supabase = get_supabase()
     supabase.table("budgets").delete().eq("id", budget_id).execute()
 
-def add_expense(expense_date: date, amount: float, category_id: str | None, description: str):
+def add_expense(expense_date: date, amount: float, category_id: Optional[str], description: str):
     supabase = get_supabase()
     payload = {
         "expense_date": str(expense_date),
         "amount": float(amount),
         "category_id": category_id,
-        "description": description.strip() if description else None
+        "description": description.strip() if description else None,
     }
     supabase.table("expenses").insert(payload).execute()
 
 def fetch_expenses(date_from: date, date_to: date):
     supabase = get_supabase()
-    res = (supabase.table("expenses")
-           .select("id,expense_date,amount,description,category_id,created_at")
-           .gte("expense_date", str(date_from))
-           .lte("expense_date", str(date_to))
-           .order("expense_date", desc=True)
-           .execute())
+    res = (
+        supabase.table("expenses")
+        .select("id,expense_date,amount,description,category_id,created_at")
+        .gte("expense_date", str(date_from))
+        .lte("expense_date", str(date_to))
+        .order("expense_date", desc=True)
+        .execute()
+    )
     return res.data or []
 
 def delete_expense(expense_id: str):
@@ -210,6 +305,8 @@ def delete_expense(expense_id: str):
 # -----------------------------
 def app_main():
     st.title("💳 Gasto Efectivo")
+
+    # Cabecera con usuario y cerrar sesión
     colA, colB = st.columns([3, 1])
     with colA:
         st.caption(f"Sesión: **{current_user_email()}**")
@@ -221,79 +318,57 @@ def app_main():
                 pass
             st.session_state.auth = {"user": None, "session": None}
             st.rerun()
+     
+    # Estado inicial de la página
+    if "page" not in st.session_state:
+        st.session_state["page"] = "Dashboard"
+    page = st.session_state["page"]
 
-    # Sidebar navegación
-    page = st.sidebar.radio("Menú", ["📌 Dashboard", "🏷️ Categorías", "📅 Presupuesto (mensual)", "🧾 Gastos", "📊 Reportes"])
+    # -----------------------------
+    # Menú principal en el cuerpo
+    # -----------------------------
+    #st.markdown("#### Menú")
+    render_entries_grid(PAGES, cols_per_row=5, center_last_row=False)
+    st.markdown("")
 
-    # -------- Categorías
-    if page == "🏷️ Categorías":
-        st.subheader("🏷️ Categorías")
-        c1, c2 = st.columns([2, 3])
+    # -----------------------------
+    # Renderizado de secciones
+    # -----------------------------
 
-        with c1:
-            st.markdown("### Crear categoría")
-            new_name = st.text_input("Nombre", placeholder="Ej: Alimentación")
-            if st.button("Agregar categoría", type="primary"):
-                try:
-                    add_category(new_name)
-                    st.success("Categoría agregada.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"No se pudo agregar: {e}")
-
-        with c2:
-            st.markdown("### Mis categorías")
-            cats = fetch_categories()
-            if not cats:
-                st.info("Aún no tienes categorías.")
-            else:
-                df = pd.DataFrame(cats)
-                st.dataframe(df[["name", "created_at"]], use_container_width=True)
-
-                options = {f"{row['name']} ({row['id'][:8]})": row["id"] for row in cats}
-                to_delete = st.selectbox("Eliminar categoría", ["(ninguna)"] + list(options.keys()))
-                if to_delete != "(ninguna)" and st.button("Eliminar definitivamente", type="secondary"):
-                    try:
-                        delete_category(options[to_delete])
-                        st.success("Categoría eliminada. (Los gastos quedan sin categoría si estaban asociados)")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"No se pudo eliminar: {e}")
-
-    # -------- Presupuesto mensual
-    elif page == "📅 Presupuesto (mensual)":
-        st.subheader("📅 Presupuesto mensual")
+    # -------- Dashboard
+    if page == "Dashboard":
+        st.subheader("📌 Dashboard")
         today = date.today()
-        selected = st.date_input("Selecciona un día del mes (se guardará como mes)", value=today)
-        bmonth = month_start(selected)
+        bmonth = month_start(today)
 
-        current = fetch_budget_month(bmonth)
-        current_amount = float(current["amount"]) if current else 0.0
+        # Presupuesto del mes actual
+        b = fetch_budget_month(bmonth)
+        budget_amount = float(b["amount"]) if b else 0.0
 
-        st.write(f"Mes: **{bmonth.strftime('%Y-%m')}**")
-        amount = st.number_input("Presupuesto (USD)", min_value=0.0, value=current_amount, step=10.0)
+        # Gastos del mes actual
+        start = bmonth
+        end = (bmonth + relativedelta(months=1)) - relativedelta(days=1)
+        expenses = fetch_expenses(start, end)
+        total_spent = sum(float(x["amount"]) for x in expenses) if expenses else 0.0
+        remaining = max(budget_amount - total_spent, 0.0)
 
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("Guardar/Actualizar", type="primary"):
-                try:
-                    upsert_budget(bmonth, amount)
-                    st.success("Presupuesto guardado.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"No se pudo guardar: {e}")
+        # Gastos del mes anterior
+        prev_month_start = bmonth - relativedelta(months=1)
+        prev_month_end = bmonth - relativedelta(days=1)
+        prev_expenses = fetch_expenses(prev_month_start, prev_month_end)
+        prev_total_spent = sum(float(x["amount"]) for x in prev_expenses) if prev_expenses else 0.0
 
-        with c2:
-            if current and st.button("Eliminar presupuesto del mes", type="secondary"):
-                try:
-                    delete_budget(current["id"])
-                    st.success("Presupuesto eliminado.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"No se pudo eliminar: {e}")
+        # Métricas
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Presupuesto del mes", f"${budget_amount:,.2f}")
+        c2.metric("Gastado", f"${total_spent:,.2f}")
+        c3.metric("Disponible", f"${remaining:,.2f}")
+        c4.metric("Gastado mes anterior", f"${prev_total_spent:,.2f}")
+
+        st.caption("Tip: configura el presupuesto en la sección 'Presupuesto (mensual)'.")
 
     # -------- Gastos
-    elif page == "🧾 Gastos":
+    elif page == "Gastos":
         st.subheader("🧾 Gastos")
 
         cats = fetch_categories()
@@ -347,7 +422,7 @@ def app_main():
         df["expense_date"] = pd.to_datetime(df["expense_date"])
         df = df.sort_values("expense_date", ascending=False)
 
-        st.dataframe(df[["expense_date", "amount", "category", "description"]], use_container_width=True)
+        st.dataframe(df[["expense_date", "amount", "category", "description"]], width='stretch')
 
         # Eliminar uno
         labels = {
@@ -363,40 +438,72 @@ def app_main():
             except Exception as e:
                 st.error(f"No se pudo eliminar: {e}")
 
-    # -------- Dashboard
-    elif page == "📌 Dashboard":
-        st.subheader("📌 Dashboard")
+    # -------- Categoría
+    elif page == "Categorías":
+        st.subheader("🏷️ Categorías")
+        c1, c2 = st.columns([2, 3])
+        with c1:
+            st.markdown("### Crear categoría")
+            new_name = st.text_input("Nombre", placeholder="Ej: Alimentación")
+            if st.button("Agregar categoría", type="primary"):
+                try:
+                    add_category(new_name)
+                    st.success("Categoría agregada.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"No se pudo agregar: {e}")
+        with c2:
+            st.markdown("### Mis categorías")
+            cats = fetch_categories()
+            if not cats:
+                st.info("Aún no tienes categorías.")
+            else:
+                df = pd.DataFrame(cats)
+                st.dataframe(df[["name", "created_at"]], width='stretch')
+                options = {f"{row['name']} ({row['id'][:8]})": row["id"] for row in cats}
+                to_delete = st.selectbox("Eliminar categoría", ["(ninguna)"] + list(options.keys()))
+                if to_delete != "(ninguna)" and st.button("Eliminar definitivamente", type="secondary"):
+                    try:
+                        delete_category(options[to_delete])
+                        st.success("Categoría eliminada. (Los gastos quedan sin categoría si estaban asociados)")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"No se pudo eliminar: {e}")
+
+    # -------- Presupuesto
+    elif page == "Presupuesto":
+        st.subheader("📅 Presupuesto mensual")
         today = date.today()
-        bmonth = month_start(today)
+        selected = st.date_input("Selecciona un día del mes (se guardará como mes)", value=today)
+        bmonth = month_start(selected)
 
-        # Presupuesto del mes actual
-        b = fetch_budget_month(bmonth)
-        budget_amount = float(b["amount"]) if b else 0.0
+        current = fetch_budget_month(bmonth)
+        current_amount = float(current["amount"]) if current else 0.0
 
-        # Gastos del mes actual
-        start = bmonth
-        end = (bmonth + relativedelta(months=1)) - relativedelta(days=1)
-        expenses = fetch_expenses(start, end)
-        total_spent = sum(float(x["amount"]) for x in expenses) if expenses else 0.0
-        remaining = max(budget_amount - total_spent, 0.0)
+        st.write(f"Mes: **{bmonth.strftime('%Y-%m')}**")
+        amount = st.number_input("Presupuesto (USD)", min_value=0.0, value=current_amount, step=10.0)
 
-        # Gastos del mes anterior
-        prev_month_start = bmonth - relativedelta(months=1)
-        prev_month_end = bmonth - relativedelta(days=1)
-        prev_expenses = fetch_expenses(prev_month_start, prev_month_end)
-        prev_total_spent = sum(float(x["amount"]) for x in prev_expenses) if prev_expenses else 0.0
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Guardar/Actualizar", type="primary"):
+                try:
+                    upsert_budget(bmonth, amount)
+                    st.success("Presupuesto guardado.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"No se pudo guardar: {e}")
 
-        # Métricas
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Presupuesto del mes", f"${budget_amount:,.2f}")
-        c2.metric("Gastado", f"${total_spent:,.2f}")
-        c3.metric("Disponible", f"${remaining:,.2f}")
-        c4.metric("Gastado mes anterior", f"${prev_total_spent:,.2f}")
-
-        st.caption("Tip: configura el presupuesto en la sección 'Presupuesto (mensual)'.")
+        with c2:
+            if current and st.button("Eliminar presupuesto del mes", type="secondary"):
+                try:
+                    delete_budget(current["id"])
+                    st.success("Presupuesto eliminado.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"No se pudo eliminar: {e}")
 
     # -------- Reportes
-    elif page == "📊 Reportes":
+    elif page == "Reportes":
         st.subheader("📊 Reportes")
         dcol1, dcol2 = st.columns(2)
         with dcol1:
@@ -420,7 +527,7 @@ def app_main():
         st.markdown("### Gastos por categoría")
         grp = df.groupby("category", as_index=False)["amount"].sum().sort_values("amount", ascending=False)
         fig = px.pie(grp, names="category", values="amount", hole=0.4)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
         st.markdown("### Evolución (diario)")
         daily = (
@@ -429,12 +536,11 @@ def app_main():
                 .sum()
                 )
         fig2 = px.line(daily, x="date", y="amount", markers=True)
-        st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(fig2, width='stretch')
 
         st.markdown("### Detalle")
         st.dataframe(df[["expense_date", "amount", "category", "description"]].sort_values("expense_date", ascending=False),
-                     use_container_width=True)
-
+                     width='stretch')
 
 # -----------------------------
 # Router
