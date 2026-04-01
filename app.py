@@ -419,7 +419,7 @@ def app_main():
             y=df_months["Presupuesto"],
             mode="lines+markers",
             name="Presupuesto",
-            line=dict(width=3),
+            line=dict(color="red",width=3),
         )
 
         # Ajustes visuales
