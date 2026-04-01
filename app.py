@@ -366,7 +366,76 @@ def app_main():
         c4.metric("Gastado mes anterior", f"${prev_total_spent:,.2f}")
 
         st.caption("Tip: configura el presupuesto en la sección 'Presupuesto (mensual)'.")
+        
+        # -----------------------------
+        # Gráfica: Gastado vs Presupuesto últimos 6 meses
+        # -----------------------------
+        from calendar import month_name
 
+        months_data = []
+
+        for i in range(5, -1, -1):
+            m_start = month_start(today - relativedelta(months=i))
+            m_end = (m_start + relativedelta(months=1)) - relativedelta(days=1)
+
+            # Presupuesto del mes
+            b = fetch_budget_month(m_start)
+            budget = float(b["amount"]) if b else 0.0
+
+            # Gastos del mes
+            exps = fetch_expenses(m_start, m_end)
+            spent = sum(float(x["amount"]) for x in exps) if exps else 0.0
+
+            months_data.append({
+                "Mes": m_start.strftime("%Y-%m"),
+                "Gastado": spent,
+                "Presupuesto": budget
+            })
+
+            df_months = pd.DataFrame(months_data)
+
+            # Calcular porcentaje gastado
+            df_months["% Gastado"] = df_months.apply(
+            lambda r: (r["Gastado"] / r["Presupuesto"] * 100) if r["Presupuesto"] > 0 else 0,
+            axis=1
+            )
+
+        st.markdown("### 📊 Gastado vs Presupuesto (Últimos 6 meses)")
+
+        fig = px.bar(
+            df_months,
+            x="Mes",
+            y="Gastado",
+            labels={
+            "Gastado": "Monto (USD)",
+            "Mes": "Mes"
+            },
+            text=df_months["% Gastado"].apply(lambda x: f"{x:.0f}%")
+        )
+
+        # Línea del presupuesto
+        fig.add_scatter(
+            x=df_months["Mes"],
+            y=df_months["Presupuesto"],
+            mode="lines+markers",
+            name="Presupuesto",
+            line=dict(width=3),
+        )
+
+        # Ajustes visuales
+        fig.update_traces(
+        textposition="outside",
+        selector=dict(type="bar")
+        )
+
+        fig.update_layout(
+        yaxis_title="Monto (USD)",
+        legend_title_text="",
+        hovermode="x unified"
+        )
+
+        st.plotly_chart(fig, width="stretch")
+        
     # -------- Gastos
     elif page == "Gastos":
         st.subheader("🧾 Gastos")
